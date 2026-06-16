@@ -1,114 +1,64 @@
 import React, { useState } from 'react';
-import { botApi } from '../api/client';
+import { startBot, stopBot, getBotStatus } from '../api/client';
 
-const strategies = [
-  { value: 'MACross', label: 'MA Cross (SMA 20/50)' },
-  { value: 'RSIBB', label: 'RSI + Bollinger Bands' },
-  { value: 'MACD', label: 'MACD Crossover' },
-];
+interface Props { onUpdate: () => void; }
 
-const BotControl: React.FC = () => {
-  const [strategy, setStrategy] = useState('MACross');
-  const [symbol, setSymbol] = useState('BTC/USDT');
-  const [capital, setCapital] = useState(10000);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<string>('');
-  const [isRunning, setIsRunning] = useState(false);
+export default function BotControl({ onUpdate }: Props) {
+  const [strategy, setStrategy] = useState('ma_cross');
+  const [symbol, setSymbol] = useState('BTC-USD');
+  const [capital, setCapital] = useState(1000);
+  const [running, setRunning] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const strategies = [
+    { value: 'ma_cross', label: 'MA クロス' },
+    { value: 'rsi_bb', label: 'RSI + BB' },
+    { value: 'macd', label: 'MACD' },
+  ];
 
   const handleStart = async () => {
-    setLoading(true);
-    setStatus('');
     try {
-      await botApi.start({ strategy, symbol, capital });
-      setIsRunning(true);
-      setStatus('Bot started successfully');
-    } catch (e: any) {
-      setStatus(`Error: ${e.response?.data?.detail || e.message}`);
-    } finally {
-      setLoading(false);
-    }
+      await startBot({ strategy, symbol, capital });
+      setRunning(true);
+      setMsg('Bot 開始しました');
+      onUpdate();
+    } catch { setMsg('エラーが発生しました'); }
   };
 
   const handleStop = async () => {
-    setLoading(true);
     try {
-      await botApi.stop();
-      setIsRunning(false);
-      setStatus('Bot stopped');
-    } catch (e: any) {
-      setStatus(`Error: ${e.response?.data?.detail || e.message}`);
-    } finally {
-      setLoading(false);
-    }
+      await stopBot();
+      setRunning(false);
+      setMsg('Bot 停止しました');
+      onUpdate();
+    } catch { setMsg('エラーが発生しました'); }
   };
 
-  return (
-    <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-      <h2 className="font-semibold text-slate-200 mb-4">Bot Control</h2>
+  const inp = { background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: '8px 12px', width: '100%' };
 
-      <div className="space-y-4">
+  return (
+    <div style={{ background: '#1e293b', borderRadius: 8, padding: 20 }}>
+      <div style={{ fontWeight: 'bold', marginBottom: 16 }}>Bot コントロール</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Strategy</label>
-          <select
-            value={strategy}
-            onChange={e => setStrategy(e.target.value)}
-            disabled={isRunning}
-            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 disabled:opacity-50"
-          >
-            {strategies.map(s => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
+          <label style={{ fontSize: 12, color: '#94a3b8' }}>戦略</label>
+          <select value={strategy} onChange={e => setStrategy(e.target.value)} style={inp}>
+            {strategies.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
-
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Symbol</label>
-          <input
-            type="text"
-            value={symbol}
-            onChange={e => setSymbol(e.target.value)}
-            disabled={isRunning}
-            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 disabled:opacity-50"
-            placeholder="BTC/USDT"
-          />
+          <label style={{ fontSize: 12, color: '#94a3b8' }}>シンボル</label>
+          <input value={symbol} onChange={e => setSymbol(e.target.value)} style={inp} />
         </div>
-
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Capital (USD)</label>
-          <input
-            type="number"
-            value={capital}
-            onChange={e => setCapital(Number(e.target.value))}
-            disabled={isRunning}
-            className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 disabled:opacity-50"
-          />
+          <label style={{ fontSize: 12, color: '#94a3b8' }}>資金 (USD)</label>
+          <input type="number" value={capital} onChange={e => setCapital(Number(e.target.value))} style={inp} />
         </div>
-
-        <button
-          onClick={isRunning ? handleStop : handleStart}
-          disabled={loading}
-          className={`w-full py-2 rounded font-medium text-sm transition-colors disabled:opacity-50 ${
-            isRunning
-              ? 'bg-red-600 hover:bg-red-700 text-white'
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-          }`}
-        >
-          {loading ? 'Please wait...' : isRunning ? 'Stop Bot' : 'Start Bot'}
+        <button onClick={running ? handleStop : handleStart} style={{ background: running ? '#ef4444' : '#22c55e', color: '#fff', border: 'none', padding: '10px', borderRadius: 6, cursor: 'pointer', fontWeight: 'bold' }}>
+          {running ? '停止' : '開始'}
         </button>
-
-        {status && (
-          <p className={`text-xs ${status.startsWith('Error') ? 'text-red-400' : 'text-emerald-400'}`}>
-            {status}
-          </p>
-        )}
-
-        <div className="mt-4 p-3 bg-slate-700 rounded text-xs">
-          <p className="text-slate-400 mb-1">Mode: Paper Trading</p>
-          <p className="text-slate-400">No real funds used</p>
-        </div>
+        {msg && <div style={{ color: '#94a3b8', fontSize: 12 }}>{msg}</div>}
       </div>
     </div>
   );
-};
-
-export default BotControl;
+}

@@ -1,143 +1,102 @@
 import React, { useState } from 'react';
-import { backtestApi, BacktestResult } from '../api/client';
+import { runBacktest } from '../api/client';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-const strategies = [
-  { value: 'MACross', label: 'MA Cross (SMA 20/50)' },
-  { value: 'RSIBB', label: 'RSI + Bollinger Bands' },
-  { value: 'MACD', label: 'MACD Crossover' },
-];
-
-const Backtest: React.FC = () => {
-  const [form, setForm] = useState({
-    symbol: 'BTC-USD',
-    strategy: 'MACross',
-    start_date: '2023-01-01',
-    end_date: '2024-01-01',
-    initial_capital: 10000,
-  });
+export default function Backtest() {
+  const [form, setForm] = useState({ symbol: 'BTC-USD', strategy: 'ma_cross', start_date: '2023-01-01', end_date: '2024-01-01', initial_capital: 10000 });
+  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<BacktestResult | null>(null);
   const [error, setError] = useState('');
 
+  const strategies = [
+    { value: 'ma_cross', label: 'MA クロス' },
+    { value: 'rsi_bb', label: 'RSI + ボリンジャーバンド' },
+    { value: 'macd', label: 'MACD' },
+  ];
+
   const handleRun = async () => {
-    setLoading(true);
-    setError('');
-    setResult(null);
+    setLoading(true); setError(''); setResult(null);
     try {
-      const res = await backtestApi.run(form);
+      const res = await runBacktest(form);
       setResult(res.data);
     } catch (e: any) {
-      setError(e.response?.data?.detail || e.message);
-    } finally {
-      setLoading(false);
+      setError(e?.response?.data?.detail ?? 'エラーが発生しました');
     }
+    setLoading(false);
   };
 
-  return (
-    <div className="max-w-4xl">
-      <h1 className="text-xl font-bold text-slate-100 mb-6">Backtest Strategy</h1>
+  const inp = { background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 6, padding: '8px 12px', width: '100%' };
 
-      <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 mb-6">
-        <div className="grid grid-cols-2 gap-4 mb-4">
+  return (
+    <div style={{ maxWidth: 900 }}>
+      <h2 style={{ marginTop: 0, color: '#38bdf8' }}>バックテスト</h2>
+      <div style={{ background: '#1e293b', borderRadius: 8, padding: 20, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Symbol (yfinance format)</label>
-            <input
-              type="text"
-              value={form.symbol}
-              onChange={e => setForm({ ...form, symbol: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-              placeholder="BTC-USD"
-            />
+            <label style={{ fontSize: 12, color: '#94a3b8' }}>シンボル</label>
+            <input value={form.symbol} onChange={e => setForm({ ...form, symbol: e.target.value })} style={inp} />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Strategy</label>
-            <select
-              value={form.strategy}
-              onChange={e => setForm({ ...form, strategy: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-            >
+            <label style={{ fontSize: 12, color: '#94a3b8' }}>戦略</label>
+            <select value={form.strategy} onChange={e => setForm({ ...form, strategy: e.target.value })} style={inp}>
               {strategies.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Start Date</label>
-            <input
-              type="date"
-              value={form.start_date}
-              onChange={e => setForm({ ...form, start_date: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-            />
+            <label style={{ fontSize: 12, color: '#94a3b8' }}>初期資金 (USD)</label>
+            <input type="number" value={form.initial_capital} onChange={e => setForm({ ...form, initial_capital: Number(e.target.value) })} style={inp} />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">End Date</label>
-            <input
-              type="date"
-              value={form.end_date}
-              onChange={e => setForm({ ...form, end_date: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-            />
+            <label style={{ fontSize: 12, color: '#94a3b8' }}>開始日</label>
+            <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} style={inp} />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Initial Capital (USD)</label>
-            <input
-              type="number"
-              value={form.initial_capital}
-              onChange={e => setForm({ ...form, initial_capital: Number(e.target.value) })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500"
-            />
+            <label style={{ fontSize: 12, color: '#94a3b8' }}>終了日</label>
+            <input type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} style={inp} />
           </div>
         </div>
-        <button
-          onClick={handleRun}
-          disabled={loading}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded font-medium text-sm disabled:opacity-50"
-        >
-          {loading ? 'Running Backtest...' : 'Run Backtest'}
+        <button onClick={handleRun} disabled={loading} style={{ background: '#0ea5e9', color: '#fff', border: 'none', padding: '10px 32px', borderRadius: 6, cursor: 'pointer', fontWeight: 'bold' }}>
+          {loading ? '実行中...' : 'バックテスト実行'}
         </button>
-        {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
+        {error && <div style={{ color: '#ef4444', marginTop: 8 }}>{error}</div>}
       </div>
 
       {result && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-4 gap-4">
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
             {[
-              { label: 'Total Return', value: `${result.total_return >= 0 ? '+' : ''}${result.total_return.toFixed(2)}%`, positive: result.total_return >= 0 },
-              { label: 'Sharpe Ratio', value: result.sharpe_ratio.toFixed(3) },
-              { label: 'Max Drawdown', value: `-${result.max_drawdown.toFixed(2)}%`, positive: false },
-              { label: 'Win Rate', value: `${result.win_rate.toFixed(1)}%`, positive: result.win_rate >= 50 },
-            ].map(stat => (
-              <div key={stat.label} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-                <p className="text-xs text-slate-400 mb-1">{stat.label}</p>
-                <p className={`text-xl font-bold ${stat.positive === true ? 'text-emerald-400' : stat.positive === false ? 'text-red-400' : 'text-slate-100'}`}>
-                  {stat.value}
-                </p>
+              { label: 'トータルリターン', value: `${result.total_return}%`, color: result.total_return >= 0 ? '#22c55e' : '#ef4444' },
+              { label: 'シャープレシオ', value: result.sharpe_ratio },
+              { label: '最大ドローダウン', value: `${result.max_drawdown}%`, color: '#ef4444' },
+              { label: '勝率', value: `${result.win_rate}%`, color: '#22c55e' },
+            ].map((s, i) => (
+              <div key={i} style={{ background: '#1e293b', borderRadius: 8, padding: 16 }}>
+                <div style={{ color: '#94a3b8', fontSize: 12 }}>{s.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 'bold', color: s.color ?? '#e2e8f0', marginTop: 4 }}>{s.value}</div>
               </div>
             ))}
           </div>
-
-          <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <h3 className="font-semibold text-slate-200 mb-3">Trade History ({result.trades.length} trades)</h3>
-            <div className="overflow-auto max-h-64">
-              <table className="w-full text-sm">
+          <div style={{ background: '#1e293b', borderRadius: 8, padding: 20, marginBottom: 24 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 12 }}>取引履歴 ({result.total_trades} 取引)</div>
+            <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
-                  <tr className="text-slate-400 border-b border-slate-700">
-                    <th className="text-left py-2 pr-4">Date</th>
-                    <th className="text-left py-2 pr-4">Side</th>
-                    <th className="text-right py-2 pr-4">Price</th>
-                    <th className="text-right py-2 pr-4">Qty</th>
-                    <th className="text-right py-2">PnL</th>
+                  <tr style={{ color: '#94a3b8' }}>
+                    <th style={{ textAlign: 'left', padding: '8px 0' }}>日付</th>
+                    <th style={{ textAlign: 'left', padding: '8px 0' }}>売買</th>
+                    <th style={{ textAlign: 'right', padding: '8px 0' }}>価格</th>
+                    <th style={{ textAlign: 'right', padding: '8px 0' }}>損益</th>
+                    <th style={{ textAlign: 'left', padding: '8px 0' }}>理由</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {result.trades.map((t, i) => (
-                    <tr key={i} className="border-b border-slate-700/50 hover:bg-slate-700/30">
-                      <td className="py-1.5 pr-4 text-slate-400">{new Date(t.timestamp).toLocaleDateString()}</td>
-                      <td className={`py-1.5 pr-4 font-medium ${t.side === 'buy' ? 'text-emerald-400' : 'text-red-400'}`}>{t.side.toUpperCase()}</td>
-                      <td className="py-1.5 pr-4 text-right">${t.price.toLocaleString()}</td>
-                      <td className="py-1.5 pr-4 text-right">{t.quantity.toFixed(6)}</td>
-                      <td className={`py-1.5 text-right ${(t.pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {t.pnl != null ? `${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}` : '--'}
-                      </td>
+                  {result.trades.map((t: any, i: number) => (
+                    <tr key={i} style={{ borderTop: '1px solid #334155' }}>
+                      <td style={{ padding: '6px 0' }}>{t.date}</td>
+                      <td style={{ color: t.side === 'BUY' ? '#22c55e' : '#ef4444' }}>{t.side}</td>
+                      <td style={{ textAlign: 'right' }}>${t.price?.toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', color: (t.pnl ?? 0) >= 0 ? '#22c55e' : '#ef4444' }}>{t.pnl !== undefined ? `$${t.pnl?.toFixed(2)}` : '-'}</td>
+                      <td style={{ color: '#64748b', fontSize: 11 }}>{t.reason}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -148,6 +107,4 @@ const Backtest: React.FC = () => {
       )}
     </div>
   );
-};
-
-export default Backtest;
+}
