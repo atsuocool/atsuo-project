@@ -6,25 +6,27 @@ interface Props { symbol: string; }
 
 export default function Chart({ symbol }: Props) {
   const [data, setData] = useState<any[]>([]);
-  const [selectedInterval, setSelectedInterval] = useState('1h');
+  const [interval, setInterval] = useState('1h');
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetch = async () => {
       try {
-        const res = await getOHLCV(symbol || 'BTC-USD', selectedInterval);
+        const res = await getOHLCV(symbol || 'BTC-USD', interval);
         setData(res.data.data.slice(-100));
       } catch {}
     };
-    fetchData();
-  }, [symbol, selectedInterval]);
+    fetch();
+  }, [symbol, interval]);
+
+  const intervals = ['1h', '4h', '1d'];
 
   return (
     <div style={{ background: '#1e293b', borderRadius: 8, padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
         <span style={{ fontWeight: 'bold' }}>{symbol} チャート</span>
         <div style={{ display: 'flex', gap: 8 }}>
-          {['1h', '4h', '1d'].map(i => (
-            <button key={i} onClick={() => setSelectedInterval(i)} style={{ background: selectedInterval === i ? '#0ea5e9' : '#334155', color: '#e2e8f0', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>{i.toUpperCase()}</button>
+          {intervals.map(i => (
+            <button key={i} onClick={() => setInterval(i)} style={{ background: interval === i ? '#0ea5e9' : '#334155', color: '#e2e8f0', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>{i.toUpperCase()}</button>
           ))}
         </div>
       </div>
